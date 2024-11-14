@@ -6,8 +6,9 @@
 //
 
 import SwiftUI
+import Combine
 
-struct Song: Identifiable, Codable {
+struct Song: Identifiable, Codable, Hashable {
     let id: String
     let title: String
     let type: String
@@ -16,7 +17,7 @@ struct Song: Identifiable, Codable {
     let basic_info: BasicInfo
     let charts: [Chart]
 
-    struct BasicInfo: Codable {
+    struct BasicInfo: Codable, Hashable {
         let title: String
         let artist: String
         let genre: String
@@ -25,7 +26,7 @@ struct Song: Identifiable, Codable {
         let is_new: Bool
     }
 
-    struct Chart: Codable {
+    struct Chart: Codable, Hashable {
         let notes: [Int]
         let charter: String
     }
@@ -34,18 +35,12 @@ struct Song: Identifiable, Codable {
 struct SongsView: View {
     @State private var songs: [Song] = []
     @State private var searchText: String = ""
-    @State private var isRefreshing: Bool = false
+    @State private var filteredSongs: [Song] = []
     @State private var selectedSong: Song?
     private let apiURL = "https://www.diving-fish.com/api/maimaidxprober/music_data"
-
-    var filteredSongs: [Song] {
-        if searchText.isEmpty {
-            return songs
-        } else {
-            return searchSongs(query: searchText)
-        }
-    }
-
+    @State private var aliasMapping: [String: [Int]] = [:]
+    @State private var searchDebounceTask: DispatchWorkItem?
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -57,10 +52,17 @@ struct SongsView: View {
                         TextField("搜索歌曲", text: $searchText)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding()
-                            //.background(Color.white)
                             .cornerRadius(10)
                             .padding(.horizontal)
                             .opacity(0.7)
+                            .onChange(of: searchText) { newValue in
+                                searchDebounceTask?.cancel()  // 取消前一个任务
+                                let task = DispatchWorkItem {
+                                    updateFilteredSongs()
+                                }
+                                searchDebounceTask = task
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: task)  // 0.5秒延迟
+                            }
 
                         ScrollView {
                             LazyVStack(spacing: 16) {
@@ -84,6 +86,7 @@ struct SongsView: View {
                     .navigationTitle("歌曲列表")
                     .onAppear {
                         loadCachedSongs()
+                        loadAliasMapping()
                     }
                     .refreshable {
                         refreshSongs()
@@ -101,6 +104,7 @@ struct SongsView: View {
             let decoder = JSONDecoder()
             if let decodedSongs = try? decoder.decode([Song].self, from: cachedSongs) {
                 self.songs = decodedSongs.reversed()
+                self.filteredSongs = decodedSongs.reversed() // 初始化过滤列表
             } else {
                 loadSongs()
             }
@@ -124,6 +128,7 @@ struct SongsView: View {
                 let songData = try decoder.decode([Song].self, from: data)
                 DispatchQueue.main.async {
                     self.songs = songData.reversed()
+                    self.filteredSongs = songData.reversed() // 更新过滤列表
                     self.saveSongsToCache(songData)
                 }
             } catch {
@@ -143,10 +148,59 @@ struct SongsView: View {
         loadSongs()
     }
 
-    func searchSongs(query: String) -> [Song] {
-        return songs.filter { song in
-            song.basic_info.title.localizedCaseInsensitiveContains(query) ||
-            song.basic_info.artist.localizedCaseInsensitiveContains(query)
+//    func updateFilteredSongs() {
+//        if searchText.isEmpty {
+//            filteredSongs = songs
+//        } else {
+//            filteredSongs = songs.filter { song in
+//                song.basic_info.title.localizedCaseInsensitiveContains(searchText) ||
+//                song.basic_info.artist.localizedCaseInsensitiveContains(searchText)
+//            }
+//        }
+//    }
+    func loadAliasMapping() {
+        if let path = Bundle.main.path(forResource: "alias", ofType: "json"),
+           let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+            let decoder = JSONDecoder()
+            if let aliasDict = try? decoder.decode([String: [Int]].self, from: data) {
+                aliasMapping = aliasDict
+            } else {
+                print("Failed to decode alias mapping.")
+            }
+        } else {
+            print("Failed to locate alias.json file.")
+        }
+    }
+
+    func updateFilteredSongs() {
+        if searchText.isEmpty {
+            filteredSongs = songs
+            print("Search text is empty. Showing all songs.")
+        } else {
+            let matchedSongs = songs.filter { song in
+                let isMatch = song.basic_info.title.localizedCaseInsensitiveContains(searchText) ||
+                              song.basic_info.artist.localizedCaseInsensitiveContains(searchText)
+                if isMatch {
+                    print("Fuzzy match found for song: \(song.basic_info.title)")
+                }
+                return isMatch
+            }
+            if let songIds = aliasMapping[searchText.lowercased()] {
+                print("Alias mapping found for '\(searchText)': \(songIds)")
+                let aliasMatchedSongs = songs.filter { song in
+                    let idInt = Int(song.id) ?? -1
+                    let isAliasMatch = songIds.contains(idInt)
+                    if isAliasMatch {
+                        print("Alias match found for song: \(song.basic_info.title) with ID \(song.id)")
+                    }
+                    return isAliasMatch
+                }
+                filteredSongs = Array(Set(matchedSongs + aliasMatchedSongs))
+                print("Combined matched songs: \(filteredSongs.map { $0.basic_info.title })")
+            } else {
+                print("No alias mapping found for '\(searchText)'.")
+                filteredSongs = matchedSongs
+            }
         }
     }
 
@@ -163,7 +217,13 @@ struct SongRowView: View {
     let song: Song
     let getCoverID: (String) -> String
     @State private var localCover: UIImage? = nil
-
+    
+    private static let imageLoadQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 3
+        return queue
+    }()
+    
     var body: some View {
         HStack {
             if let image = localCover {
@@ -198,22 +258,43 @@ struct SongRowView: View {
             loadImage(for: song.id)
         }
     }
-
+    
     func loadImage(for songId: String) {
-        let songId=String(Int(songId)! % 100000)
-        DispatchQueue.global(qos: .background).async {
-            let fileName = "\(getCoverID(songId)).png"
-            if let imagePath = Bundle.main.path(forResource: fileName, ofType: nil),
-               let image = UIImage(contentsOfFile: imagePath) {
-                DispatchQueue.main.async {
-                    self.localCover = image
-                }
-            } else if let defaultImagePath = Bundle.main.path(forResource: "00000", ofType: "png"),
-                      let defaultImage = UIImage(contentsOfFile: defaultImagePath) {
-                DispatchQueue.main.async {
-                    self.localCover = defaultImage
-                }
+        if localCover != nil { return }
+        let songId = String(Int(songId)! % 100000)
+        let loadOperation = ImageLoadOperation(songId: songId, getCoverID: getCoverID)
+        loadOperation.completionBlock = {
+            guard !loadOperation.isCancelled, let image = loadOperation.image else { return }
+            DispatchQueue.main.async {
+                self.localCover = image
             }
+        }
+        
+        SongRowView.imageLoadQueue.addOperation(loadOperation)
+    }
+}
+
+class ImageLoadOperation: Operation, @unchecked Sendable {
+    let songId: String
+    let getCoverID: (String) -> String
+    var image: UIImage?
+    
+    init(songId: String, getCoverID: @escaping (String) -> String) {
+        self.songId = songId
+        self.getCoverID = getCoverID
+    }
+    
+    override func main() {
+        if isCancelled { return }
+        
+        let fileName = "\(getCoverID(songId)).png"
+        
+        if let imagePath = Bundle.main.path(forResource: fileName, ofType: nil),
+           let loadedImage = UIImage(contentsOfFile: imagePath) {
+            self.image = loadedImage
+        } else if let defaultImagePath = Bundle.main.path(forResource: "00000", ofType: "png"),
+                  let defaultImage = UIImage(contentsOfFile: defaultImagePath) {
+            self.image = defaultImage
         }
     }
 }
@@ -258,7 +339,7 @@ struct SongDetailView: View {
         case 4:
             return "Re:Master"
         default:
-            return "？？？"
+            return ""
         }
     }
     
@@ -281,9 +362,11 @@ struct SongDetailView: View {
                         ProgressView()
                             .frame(width: 100, height: 100)
                     }
+                    Text(song.basic_info.title)
+                        .font(.headline)
                     HStack {
-                        Text(song.basic_info.title)
-                            .font(.headline)
+                        Text("# \(song.id)")
+                            .foregroundStyle(.secondary)
                         Image(song.type)
                             .resizable()
                             .frame(width: 50, height: 15)
