@@ -93,7 +93,7 @@ struct SongsView: View {
                     }
                 }
                 .popover(item: $selectedSong) { song in
-                    SongDetailView(song: song, getCoverID: get_cover_id)
+                    SongDetailView(song: song, getCoverID: get_cover_id,  aliasMapping: aliasMapping)
                 }
             }
         }
@@ -303,6 +303,7 @@ class ImageLoadOperation: Operation, @unchecked Sendable {
 struct SongDetailView: View {
     let song: Song
     let getCoverID: (String) -> String
+    let aliasMapping: [String: [Int]]
     
     func colorForLevel(diff: Int) -> Color {
         if song.id.count == 6 {
@@ -346,10 +347,16 @@ struct SongDetailView: View {
     
     var body: some View {
         ZStack {
-            Image("PRiSM")
-                .resizable()
-                .edgesIgnoringSafeArea(.all)
-                .blur(radius: 50)
+            if let localCover = loadImage(for: song.id) {
+                Image(uiImage: localCover)
+                    .resizable()
+                    .edgesIgnoringSafeArea(.all)
+                    .blur(radius: 70)
+                    .overlay(
+                                    LinearGradient(gradient: Gradient(colors: [Color.white.opacity(0.5), Color.clear]), startPoint: .top, endPoint: .bottom)
+                                        .edgesIgnoringSafeArea(.all)  // 使用渐变遮罩，减少背景色对内容的影响
+                                )
+            }
             ScrollView {
                 VStack(alignment: .center) {
                     if let localCover = loadImage(for: song.id) {
@@ -371,6 +378,19 @@ struct SongDetailView: View {
                         Image(song.type)
                             .resizable()
                             .frame(width: 50, height: 15)
+                    }
+                    let matchingAliases = aliasMapping.filter { $0.value.contains(Int(song.id) ?? -1) }.keys
+
+                    if !matchingAliases.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(matchingAliases.joined(separator: " / "))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                    } else {
+                        Text("暂无别名")
+                            .foregroundColor(.secondary)
+                            .padding()
                     }
                     VStack(alignment: .leading, spacing: 8) {
                                     Group {
@@ -420,7 +440,7 @@ struct SongDetailView: View {
                                         .font(.headline)
                                         .frame(width: 50, alignment: .leading)
                                     Spacer()
-                                    Text("铺师")
+                                    Text("制谱")
                                         .font(.headline)
                                         .frame(width: 100, alignment: .leading)
                                     Spacer()
