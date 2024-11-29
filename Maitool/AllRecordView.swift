@@ -182,8 +182,9 @@ struct SongRecordView: View {
                     }
                     
                     HStack {
-                        Text("\(songRecord.fc)      ")
-                        Text("\(songRecord.fs)")
+                        Image(songRecord.fc)
+                        Text("     ")
+                        Image(songRecord.fs)
                     }
                 }
                 Spacer()

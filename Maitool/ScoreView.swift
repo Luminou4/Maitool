@@ -82,14 +82,27 @@ struct ScoreView: View {
                                     .padding()
                             }
 
-                            // 显示查询结果
                             if hasSearched {
                                 ScrollView {
                                     Text("")
-                                    Text("Rating: \(totalRating)")
-                                        .foregroundColor(.blue)
-                                        .padding()
+                                    ZStack {
 
+                                        Image(getBackgroundName(for: totalRating))
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 120, height: 50)
+                                        
+
+                                        HStack {
+                                            Spacer()
+                                            Text(String(totalRating))
+                                                .foregroundColor(.white)
+                                                .font(.system(size: 16))
+                                                .padding(.trailing, 16)
+                                        }
+                                        .padding(.horizontal, 5)
+                                    }
+                                    .frame(width: 130, height: 60)
                                     VStack(alignment: .leading, spacing: 16) {
                                         SectionView(title: "旧版本B35", list: $sdBestList, showModified: $showModifiedResults)
                                         SectionView(title: "新版本B15", list: $dxBestList, showModified: $showModifiedResults)
@@ -119,6 +132,17 @@ struct ScoreView: View {
                 }
             }
         }
+    }
+    
+    func getBackgroundName(for rating: Int) -> String {
+        let thresholds = [0, 1000, 3000, 5000, 8000, 10000, 12000, 13000, 14000, 14500, 15000]
+        let adjustedRating = max(rating, 0)
+        for (index, threshold) in thresholds.enumerated() {
+            if index < thresholds.count - 1, adjustedRating < thresholds[index + 1] {
+                return "\(threshold)"
+            }
+        }
+        return "\(thresholds.last ?? 0)"
     }
 
     func getModifiedDS(for chartInfo: ChartInfo) -> Double {
@@ -163,7 +187,7 @@ struct SectionView: View {
 
 struct ChartInfoView: View {
     let chartInfo: ChartInfo
-    let showModified: Bool // 根据这个值来决定展示哪个 ds
+    let showModified: Bool
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -238,9 +262,7 @@ func colorForLevel(diff: Int) -> Color {
 
 struct ScoreView_Previews: PreviewProvider {
     static var previews: some View {
-        // 创建 UserManager 实例
         let userManager = UserManager()
-        // 注入 UserManager 环境对象
         ScoreView()
             .environmentObject(userManager)
     }
