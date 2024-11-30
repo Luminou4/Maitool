@@ -32,6 +32,50 @@ struct Song: Identifiable, Codable, Hashable {
     }
 }
 
+class ImageLoader {
+    private static let imageLoadQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 3
+        return queue
+    }()
+    
+    static func loadImage(for songId: String, getCoverID: @escaping (String) -> String, completion: @escaping (UIImage?) -> Void) {
+        let loadOperation = ImageLoadOperation(songId: songId, getCoverID: getCoverID)
+        loadOperation.completionBlock = {
+            guard !loadOperation.isCancelled else { return }
+            DispatchQueue.main.async {
+                completion(loadOperation.image)
+            }
+        }
+        imageLoadQueue.addOperation(loadOperation)
+    }
+}
+
+class ImageLoadOperation: Operation, @unchecked Sendable {
+    let songId: String
+    let getCoverID: (String) -> String
+    var image: UIImage?
+    
+    init(songId: String, getCoverID: @escaping (String) -> String) {
+        self.songId = songId
+        self.getCoverID = getCoverID
+    }
+    
+    override func main() {
+        if isCancelled { return }
+        
+        let fileName = "\(getCoverID(songId)).png"
+        
+        if let imagePath = Bundle.main.path(forResource: fileName, ofType: nil),
+           let loadedImage = UIImage(contentsOfFile: imagePath) {
+            self.image = loadedImage
+        } else if let defaultImagePath = Bundle.main.path(forResource: "00000", ofType: "png"),
+                  let defaultImage = UIImage(contentsOfFile: defaultImagePath) {
+            self.image = defaultImage
+        }
+    }
+}
+
 struct SongsView: View {
     @State private var songs: [Song] = []
     @State private var searchText: String = ""
@@ -148,16 +192,7 @@ struct SongsView: View {
         loadSongs()
     }
 
-//    func updateFilteredSongs() {
-//        if searchText.isEmpty {
-//            filteredSongs = songs
-//        } else {
-//            filteredSongs = songs.filter { song in
-//                song.basic_info.title.localizedCaseInsensitiveContains(searchText) ||
-//                song.basic_info.artist.localizedCaseInsensitiveContains(searchText)
-//            }
-//        }
-//    }
+
     func loadAliasMapping() {
         if let path = Bundle.main.path(forResource: "alias", ofType: "json"),
            let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
@@ -206,7 +241,7 @@ struct SongsView: View {
     }
 
     func get_cover_id(mid: String) -> String {
-        var id = Int(mid) ?? 0
+        var id=Int(mid)! % 100000
         if id > 10000 && id <= 11000 {
             id -= 10000
         }
@@ -218,25 +253,19 @@ struct SongRowView: View {
     let song: Song
     let getCoverID: (String) -> String
     @State private var localCover: UIImage? = nil
-    
-    private static let imageLoadQueue: OperationQueue = {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 3
-        return queue
-    }()
-    
+
     var body: some View {
         HStack {
             if let image = localCover {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: 50, height: 50)
+                    .frame(width: 70, height: 70)
                     .cornerRadius(7)
                     .clipped()
             } else {
                 ProgressView()
-                    .frame(width: 50, height: 50)
+                    .frame(width: 70, height: 70)
             }
             
             VStack(alignment: .leading) {
@@ -256,46 +285,9 @@ struct SongRowView: View {
                 .stroke(Color.blue, lineWidth: 2)
         )
         .onAppear {
-            loadImage(for: song.id)
-        }
-    }
-    
-    func loadImage(for songId: String) {
-        if localCover != nil { return }
-        let songId = String(Int(songId)! % 100000)
-        let loadOperation = ImageLoadOperation(songId: songId, getCoverID: getCoverID)
-        loadOperation.completionBlock = {
-            guard !loadOperation.isCancelled, let image = loadOperation.image else { return }
-            DispatchQueue.main.async {
+            ImageLoader.loadImage(for: song.id, getCoverID: getCoverID) { image in
                 self.localCover = image
             }
-        }
-        
-        SongRowView.imageLoadQueue.addOperation(loadOperation)
-    }
-}
-
-class ImageLoadOperation: Operation, @unchecked Sendable {
-    let songId: String
-    let getCoverID: (String) -> String
-    var image: UIImage?
-    
-    init(songId: String, getCoverID: @escaping (String) -> String) {
-        self.songId = songId
-        self.getCoverID = getCoverID
-    }
-    
-    override func main() {
-        if isCancelled { return }
-        
-        let fileName = "\(getCoverID(songId)).png"
-        
-        if let imagePath = Bundle.main.path(forResource: fileName, ofType: nil),
-           let loadedImage = UIImage(contentsOfFile: imagePath) {
-            self.image = loadedImage
-        } else if let defaultImagePath = Bundle.main.path(forResource: "00000", ofType: "png"),
-                  let defaultImage = UIImage(contentsOfFile: defaultImagePath) {
-            self.image = defaultImage
         }
     }
 }
@@ -305,10 +297,12 @@ struct SongDetailView: View {
     let getCoverID: (String) -> String
     let aliasMapping: [String: [Int]]
     
+    @State private var coverImage: UIImage? = nil
+    
     func colorForLevel(diff: Int) -> Color {
         if song.id.count == 6 {
-                return Color(red: 238/255, green: 121/255, blue: 248/255)
-            }
+            return Color(red: 238/255, green: 121/255, blue: 248/255)
+        }
         switch diff {
         case 0:
             return Color(red: 90/255, green: 184/255, blue: 101/255) // Basic
@@ -327,8 +321,8 @@ struct SongDetailView: View {
     
     func diffName(for index: Int) -> String {
         if song.id.count == 6 {
-                return "Utage"
-            }
+            return "Utage"
+        }
         switch index {
         case 0:
             return "Basic"
@@ -347,19 +341,24 @@ struct SongDetailView: View {
     
     var body: some View {
         ZStack {
-            if let localCover = loadImage(for: song.id) {
+            if let localCover = coverImage {
                 Image(uiImage: localCover)
                     .resizable()
                     .edgesIgnoringSafeArea(.all)
                     .blur(radius: 70)
                     .overlay(
-                                    LinearGradient(gradient: Gradient(colors: [Color.white.opacity(0.5), Color.clear]), startPoint: .top, endPoint: .bottom)
-                                        .edgesIgnoringSafeArea(.all)  // 使用渐变遮罩，减少背景色对内容的影响
-                                )
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.white.opacity(0.5), Color.clear]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .edgesIgnoringSafeArea(.all)
+                    )
             }
+            
             ScrollView {
                 VStack(alignment: .center) {
-                    if let localCover = loadImage(for: song.id) {
+                    if let localCover = coverImage {
                         Image(uiImage: localCover)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
@@ -370,8 +369,10 @@ struct SongDetailView: View {
                         ProgressView()
                             .frame(width: 100, height: 100)
                     }
+                    
                     Text(song.basic_info.title)
                         .font(.headline)
+                    
                     HStack {
                         Text("# \(song.id)")
                             .foregroundStyle(.secondary)
@@ -379,8 +380,9 @@ struct SongDetailView: View {
                             .resizable()
                             .frame(width: 50, height: 15)
                     }
+                    
                     let matchingAliases = aliasMapping.filter { $0.value.contains(Int(song.id) ?? -1) }.keys
-
+                    
                     if !matchingAliases.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(matchingAliases.joined(separator: " / "))
@@ -392,41 +394,42 @@ struct SongDetailView: View {
                             .foregroundColor(.secondary)
                             .padding()
                     }
+                    
                     VStack(alignment: .leading, spacing: 8) {
-                                    Group {
-                                        HStack {
-                                            Text("作曲")
-                                                .bold()
-                                            Spacer()
-                                            Text(song.basic_info.artist)
-                                        }
-                                        Divider()
-                                        
-                                        HStack {
-                                            Text("BPM")
-                                                .bold()
-                                            Spacer()
-                                            Text("\(song.basic_info.bpm)")
-                                        }
-                                        Divider()
-                                        
-                                        HStack {
-                                            Text("版本")
-                                                .bold()
-                                            Spacer()
-                                            Text(song.basic_info.from)
-                                        }
-                                        Divider()
-                                        
-                                        HStack {
-                                            Text("流派")
-                                                .bold()
-                                            Spacer()
-                                            Text(song.basic_info.genre)
-                                        }
-                                    }
-                                }
-                                .padding()
+                        Group {
+                            HStack {
+                                Text("作曲")
+                                    .bold()
+                                Spacer()
+                                Text(song.basic_info.artist)
+                            }
+                            Divider()
+                            
+                            HStack {
+                                Text("BPM")
+                                    .bold()
+                                Spacer()
+                                Text("\(song.basic_info.bpm)")
+                            }
+                            Divider()
+                            
+                            HStack {
+                                Text("版本")
+                                    .bold()
+                                Spacer()
+                                Text(song.basic_info.from)
+                            }
+                            Divider()
+                            
+                            HStack {
+                                Text("流派")
+                                    .bold()
+                                Spacer()
+                                Text(song.basic_info.genre)
+                            }
+                        }
+                    }
+                    .padding()
                     
                     VStack(alignment: .leading, spacing: 8) {
                         ScrollView(.horizontal) {
@@ -465,13 +468,14 @@ struct SongDetailView: View {
                                         .frame(width: 70, alignment: .leading)
                                 }
                                 .padding(.bottom, 4)
-                            ForEach(0..<song.level.count, id: \.self) { index in
-                                let levelName = song.level[index]
-                                let dsValue = song.ds[index]
-                                let diff = diffName(for: index)
-                                let chart = song.charts[index]
-                                let notes = chart.notes.prefix(5).map { $0 == 0 ? "-" : "\($0)" }
-
+                                
+                                ForEach(0..<song.level.count, id: \.self) { index in
+                                    let levelName = song.level[index]
+                                    let dsValue = song.ds[index]
+                                    let diff = diffName(for: index)
+                                    let chart = song.charts[index]
+                                    let notes = chart.notes.prefix(5).map { $0 == 0 ? "-" : "\($0)" }
+                                    
                                     HStack {
                                         Text("\(diff) \(levelName)")
                                             .font(.subheadline)
@@ -489,45 +493,9 @@ struct SongDetailView: View {
                                         Text(chart.charter)
                                             .font(.subheadline)
                                             .frame(width: 100, alignment: .leading)
-                                        if notes.count == 5 {
-                                            Text(notes[0]) // TAP
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text(notes[1]) // HOLD
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text(notes[2]) // SLIDE
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text(notes[3]) // TOUCH
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text(notes[4]) // BREAK
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                        }
-                                        else {
-                                            Text(notes[0]) // TAP
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text(notes[1]) // HOLD
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text(notes[2]) // SLIDE
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text("-")
-                                                .font(.subheadline)
-                                                .frame(width: 70, alignment: .leading)
-                                            Spacer()
-                                            Text(notes[3]) // BREAK
+                                        
+                                        ForEach(notes, id: \.self) { note in
+                                            Text(note)
                                                 .font(.subheadline)
                                                 .frame(width: 70, alignment: .leading)
                                         }
@@ -540,47 +508,35 @@ struct SongDetailView: View {
                     .padding()
                     
                     Button(action: {
-                                    wakeUpBilibiliAndSearch(keyword: song.basic_info.title)
-                                }) {
-                                    Image("BiliBili")
-                                        .resizable()
-                                        .frame(width: 25, height: 25)
-                                    Text("在 Bilibili 查看")
-                                }
-                    
+                        wakeUpBilibiliAndSearch(keyword: song.basic_info.title)
+                    }) {
+                        Image("BiliBili")
+                            .resizable()
+                            .frame(width: 25, height: 25)
+                        Text("在 Bilibili 查看")
+                    }
                 }
                 .padding()
                 .navigationTitle(song.basic_info.title)
             }
         }
+        .onAppear {
+            ImageLoader.loadImage(for: song.id, getCoverID: getCoverID) { image in
+                self.coverImage = image
+            }
+        }
     }
     
     func wakeUpBilibiliAndSearch(keyword: String) {
-            let bilibiliAppURL = URL(string: "bilibili://search/?context=new_search&keyword=\(keyword.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")!
-            let bilibiliWebURL = URL(string: "https://www.bilibili.com/search?keyword=\(keyword.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")!
-            
-            if UIApplication.shared.canOpenURL(bilibiliAppURL) {
-                UIApplication.shared.open(bilibiliAppURL, options: [:], completionHandler: nil)
-            } else {
-                UIApplication.shared.open(bilibiliWebURL, options: [:], completionHandler: nil)
-            }
-        }
-
-    func loadImage(for songId: String) -> UIImage? {
-        let songId=String(Int(songId)! % 100000)
-        let fileName = "\(getCoverID(songId)).png"
-        if let imagePath = Bundle.main.path(forResource: fileName, ofType: nil),
-           let image = UIImage(contentsOfFile: imagePath) {
-            return image
-        }
-        if let defaultImagePath = Bundle.main.path(forResource: "00000", ofType: "png"),
-           let defaultImage = UIImage(contentsOfFile: defaultImagePath) {
-            return defaultImage
-        }
+        let bilibiliAppURL = URL(string: "bilibili://search/?context=new_search&keyword=\(keyword.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")!
+        let bilibiliWebURL = URL(string: "https://www.bilibili.com/search?keyword=\(keyword.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")!
         
-        return nil
+        if UIApplication.shared.canOpenURL(bilibiliAppURL) {
+            UIApplication.shared.open(bilibiliAppURL, options: [:], completionHandler: nil)
+        } else {
+            UIApplication.shared.open(bilibiliWebURL, options: [:], completionHandler: nil)
+        }
     }
-
 }
 
 struct SongsView_Previews: PreviewProvider {

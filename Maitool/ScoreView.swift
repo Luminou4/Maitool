@@ -158,6 +158,14 @@ struct SectionView: View {
     var title: String
     @Binding var list: [ChartInfo]
     @Binding var showModified: Bool
+    
+    func get_cover_id(mid: String) -> String {
+        var id=Int(mid)! % 100000
+        if id > 10000 && id <= 11000 {
+            id -= 10000
+        }
+        return String(format: "%05d", id)
+    }
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -175,7 +183,7 @@ struct SectionView: View {
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(list.indices, id: \.self) { index in
-                        ChartInfoView(chartInfo: list[index], showModified: showModified)
+                        ChartInfoView(chartInfo: list[index], showModified: showModified,getCoverID: get_cover_id)
                     }
                 }
                 .padding(.top, 10)
@@ -188,10 +196,31 @@ struct SectionView: View {
 struct ChartInfoView: View {
     let chartInfo: ChartInfo
     let showModified: Bool
+    let getCoverID: (String) -> String
+    @State private var localCover: UIImage? = nil
+    
+    func get_cover_id(mid: String) -> String {
+        var id=Int(mid)! % 100000
+        if id > 10000 && id <= 11000 {
+            id -= 10000
+        }
+        return String(format: "%05d", id)
+    }
 
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
+                if let image = localCover {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 70, height: 70)
+                        .cornerRadius(7)
+                        .clipped()
+                } else {
+                    ProgressView()
+                        .frame(width: 70, height: 70)
+                }
                 VStack(alignment: .leading) {
                     Text(chartInfo.title)
                         .font(.headline)
@@ -218,6 +247,11 @@ struct ChartInfoView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color.blue, lineWidth: 2)
             )
+            .onAppear {
+                ImageLoader.loadImage(for: String(chartInfo.idNum), getCoverID: getCoverID) { image in
+                    self.localCover = image
+                }
+            }
         }
     }
 
