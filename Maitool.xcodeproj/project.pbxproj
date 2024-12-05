@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		E4045F3C2CDCA85C00A8F05F /* adobe_simhei.otf in Resources */ = {isa = PBXBuildFile; fileRef = E4045F3B2CDCA85C00A8F05F /* adobe_simhei.otf */; };
 		E41A3CE72C63C71B00A5A8B1 /* ScoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41A3CE62C63C71B00A5A8B1 /* ScoreView.swift */; };
-		E41A3CEB2C63C92400A5A8B1 /* RatingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41A3CEA2C63C92400A5A8B1 /* RatingView.swift */; };
 		E41DD9D82CB91D3600118CEA /* fitConstant.json in Resources */ = {isa = PBXBuildFile; fileRef = E41DD9D72CB91D3600118CEA /* fitConstant.json */; };
 		E426AA1B2C99730F001EBBA5 /* 11292.png in Resources */ = {isa = PBXBuildFile; fileRef = E426A8B82C99730F001EBBA5 /* 11292.png */; };
 		E426AA1C2C99730F001EBBA5 /* 11593.png in Resources */ = {isa = PBXBuildFile; fileRef = E426A9CF2C99730F001EBBA5 /* 11593.png */; };
@@ -1243,16 +1242,16 @@
 		E46372902C33E17100F03314 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E463728F2C33E17100F03314 /* Preview Assets.xcassets */; };
 		E46372972C33E46800F03314 /* generate50.swift in Sources */ = {isa = PBXBuildFile; fileRef = E46372962C33E46800F03314 /* generate50.swift */; };
 		E48BD2732C9569B90088D85C /* UserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E48BD2722C9569B90088D85C /* UserView.swift */; };
+		E497ACFD2D01E51F008C9C0F /* RatingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E497ACFC2D01E51F008C9C0F /* RatingView.swift */; };
 		E498E5122C98872800D2A073 /* AllRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E498E5112C98872800D2A073 /* AllRecordView.swift */; };
-		E4A1AFFD2CE633A40025460B /* alias.json in Resources */ = {isa = PBXBuildFile; fileRef = E4A1AFFC2CE633A40025460B /* alias.json */; };
 		E4A3D0262C8D3CC900923307 /* SongsViewNew.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A3D0252C8D3CC900923307 /* SongsViewNew.swift */; };
+		E4CCDDE42D01A95C00CB6E96 /* alias.json in Resources */ = {isa = PBXBuildFile; fileRef = E4CCDDE32D01A95C00CB6E96 /* alias.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		E4045F3B2CDCA85C00A8F05F /* adobe_simhei.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = adobe_simhei.otf; sourceTree = "<group>"; };
 		E4045F3D2CDCA9BF00A8F05F /* adobe_simhei.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = adobe_simhei.otf; path = Maitool/Fonts/adobe_simhei.otf; sourceTree = "<group>"; };
 		E41A3CE62C63C71B00A5A8B1 /* ScoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreView.swift; sourceTree = "<group>"; };
-		E41A3CEA2C63C92400A5A8B1 /* RatingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingView.swift; sourceTree = SOURCE_ROOT; };
 		E41DD9D72CB91D3600118CEA /* fitConstant.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = fitConstant.json; sourceTree = "<group>"; };
 		E426A5562C99730F001EBBA5 /* 00000.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 00000.png; sourceTree = "<group>"; };
 		E426A5572C99730F001EBBA5 /* 00008.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 00008.png; sourceTree = "<group>"; };
@@ -2487,10 +2486,11 @@
 		E463728F2C33E17100F03314 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		E46372962C33E46800F03314 /* generate50.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = generate50.swift; sourceTree = "<group>"; };
 		E48BD2722C9569B90088D85C /* UserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserView.swift; sourceTree = "<group>"; };
+		E497ACFC2D01E51F008C9C0F /* RatingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingView.swift; sourceTree = "<group>"; };
 		E498E5112C98872800D2A073 /* AllRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllRecordView.swift; sourceTree = "<group>"; };
-		E4A1AFFC2CE633A40025460B /* alias.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = alias.json; sourceTree = "<group>"; };
 		E4A3D0252C8D3CC900923307 /* SongsViewNew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongsViewNew.swift; sourceTree = "<group>"; };
 		E4ABC4922C3BBF4500D9CB6A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E4CCDDE32D01A95C00CB6E96 /* alias.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = alias.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -3759,7 +3759,7 @@
 				E4ABC4922C3BBF4500D9CB6A /* Info.plist */,
 				E46372862C33E17000F03314 /* MaitoolApp.swift */,
 				E46372882C33E17000F03314 /* ContentView.swift */,
-				E41A3CEA2C63C92400A5A8B1 /* RatingView.swift */,
+				E497ACFC2D01E51F008C9C0F /* RatingView.swift */,
 				E4A3D0252C8D3CC900923307 /* SongsViewNew.swift */,
 				E41A3CE62C63C71B00A5A8B1 /* ScoreView.swift */,
 				E498E5112C98872800D2A073 /* AllRecordView.swift */,
@@ -3767,7 +3767,7 @@
 				E463728A2C33E17000F03314 /* Item.swift */,
 				E46372962C33E46800F03314 /* generate50.swift */,
 				E41DD9D72CB91D3600118CEA /* fitConstant.json */,
-				E4A1AFFC2CE633A40025460B /* alias.json */,
+				E4CCDDE32D01A95C00CB6E96 /* alias.json */,
 				E463728C2C33E17100F03314 /* Assets.xcassets */,
 				E426AA1A2C99730F001EBBA5 /* cover */,
 				E4ABC4932C3BC0E600D9CB6A /* Fonts */,
@@ -3938,7 +3938,7 @@
 				E426AA692C99730F001EBBA5 /* 00387.png in Resources */,
 				E426AA6A2C99730F001EBBA5 /* 00384.png in Resources */,
 				E426AA6B2C99730F001EBBA5 /* 00435.png in Resources */,
-				E4A1AFFD2CE633A40025460B /* alias.json in Resources */,
+				E4CCDDE42D01A95C00CB6E96 /* alias.json in Resources */,
 				E426AA6C2C99730F001EBBA5 /* 11548.png in Resources */,
 				E426AA6D2C99730F001EBBA5 /* 00367.png in Resources */,
 				E426AA6E2C99730F001EBBA5 /* 11425.png in Resources */,
@@ -5097,12 +5097,12 @@
 				E46372892C33E17000F03314 /* ContentView.swift in Sources */,
 				E498E5122C98872800D2A073 /* AllRecordView.swift in Sources */,
 				E463728B2C33E17000F03314 /* Item.swift in Sources */,
+				E497ACFD2D01E51F008C9C0F /* RatingView.swift in Sources */,
 				E46372872C33E17000F03314 /* MaitoolApp.swift in Sources */,
 				E4A3D0262C8D3CC900923307 /* SongsViewNew.swift in Sources */,
 				E46372972C33E46800F03314 /* generate50.swift in Sources */,
 				E48BD2732C9569B90088D85C /* UserView.swift in Sources */,
 				E41A3CE72C63C71B00A5A8B1 /* ScoreView.swift in Sources */,
-				E41A3CEB2C63C92400A5A8B1 /* RatingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

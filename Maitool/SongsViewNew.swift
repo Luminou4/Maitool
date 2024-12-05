@@ -110,7 +110,7 @@ struct SongsView: View {
 
                         ScrollView {
                             LazyVStack(spacing: 16) {
-                                Text("Ver.CN1.41-F")
+                                Text("Ver.CN1.41-G")
                                     .foregroundColor(.gray)
                                     .padding(.top)
 
@@ -296,7 +296,6 @@ struct SongDetailView: View {
     let song: Song
     let getCoverID: (String) -> String
     let aliasMapping: [String: [Int]]
-    
     @State private var coverImage: UIImage? = nil
     
     func colorForLevel(diff: Int) -> Color {
