@@ -458,10 +458,12 @@ struct SongDetailView: View {
                                         .font(.headline)
                                         .frame(width: 70, alignment: .leading)
                                     Spacer()
+                                if song.type == "DX" {
                                     Text("TOUCH")
                                         .font(.headline)
                                         .frame(width: 70, alignment: .leading)
                                     Spacer()
+                                }
                                     Text("BREAK")
                                         .font(.headline)
                                         .frame(width: 70, alignment: .leading)
